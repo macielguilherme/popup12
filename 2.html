@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloqueio de Destinação - DocZ</title>
+    <style>
+        /* ===== 1. RESET E DEFINIÇÕES BASE ===== */
+        html, body {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: #fafafa;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #595959;
+            line-height: 20px;
+        }
+
+        /* ===== 2. ESTRUTURA DA MODAL (BACKDROP & DIALOG) ===== */
+        #popup-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .ui-dialog {
+            background: #585858;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            width: 850px;
+            max-width: 95%;
+            box-sizing: border-box;
+        }
+
+        /* Titlebar Legada DocZ */
+        .ui-dialog-titlebar {
+            background: url("https://docz.sosdocs.com.br/Docz/app/images/backgrounds/titleBg.png") repeat-x 0 0;
+            border-bottom: 1px solid #cdcdcd;
+            height: 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .ui-dialog-title {
+            font-weight: bold;
+            color: #595959;
+            font-size: 12px;
+            text-transform: none;
+        }
+
+        .close-x {
+            text-decoration: none;
+            color: #595959;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.1s;
+        }
+
+        .close-x:hover {
+            color: #000;
+        }
+
+        /* Corpo Interno */
+        .ui-dialog-content {
+            background-color: #fafafa;
+            padding: 20px;
+            border-radius: 0 0 3px 3px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* ===== 3. QUADROS DE ALERTAS E VALIDAÇÃO ===== */
+        .validation-message {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            border-radius: 3px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            text-align: left;
+            line-height: 1.6;
+            box-sizing: border-box;
+        }
+
+        .validation-message.error {
+            background: #fff1f0;
+            border: 1px dashed #9f352b;
+            color: #9f352b;
+        }
+
+        .validation-message.success {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+            display: none; /* Controlado via JS */
+        }
+
+        .alert-icon {
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        /* ===== 4. PAINEL DE RESUMO (METADADOS) ===== */
+        .summary-container {
+            background: #f4f4f4;
+            border: 1px solid #cdcdcd;
+            border-radius: 3px;
+            padding: 12px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .summary-item {
+            font-size: 11px;
+            color: #595959;
+        }
+
+        .summary-item strong {
+            color: #333;
+        }
+
+        /* ===== 5. GRID / TABELA DE DADOS ADMINISTRATIVA ===== */
+        .grid-container {
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 3px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            text-align: left;
+        }
+
+        .grid-table th {
+            background: #eee;
+            padding: 8px 10px;
+            border-bottom: 1px solid #ccc;
+            border-right: 1px solid #ddd;
+            color: #444;
+            font-weight: bold;
+        }
+
+        .grid-table th:last-child, .grid-table td:last-child {
+            border-right: none;
+        }
+
+        .grid-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+            color: #595959;
+        }
+
+        .grid-table tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        .grid-table tr:hover td {
+            background-color: #f1f5f9;
+        }
+
+        /* Status na Tabela */
+        .status-badge {
+            font-weight: bold;
+            color: #9f352b;
+        }
+
+        .status-badge.included {
+            color: #2e7d32;
+        }
+
+        /* ===== 6. REGRAS E NOTAS INFORMATIVAS ===== */
+        .info-notes {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+
+        .info-notes p {
+            margin: 0 0 8px 0;
+            font-size: 11px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        .info-notes ul {
+            margin: 0;
+            padding-left: 15px;
+            list-style-type: square;
+        }
+
+        .info-notes li {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        /* ===== 7. BOTÕES PADRÃO DOCZ ===== */
+        .button-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px double #ccc;
+            padding-top: 15px;
+        }
+
+        .btn-group-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-docz {
+            font-size: 11px;
+            font-weight: bold;
+            background-image: url("https://docz.sosdocs.com.br/Docz/app/images/ui/usualButtons.png");
+            background-repeat: repeat-x;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 8px 20px;
+            border-radius: 2px;
+            color: #fff;
+            border: none;
+            font-family: Arial, Helvetica, sans-serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            height: 30px;
+        }
+
+        .btn-docz:hover {
+            opacity: 0.9;
+        }
+
+        .btn-docz:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        /* Sprite Positions dos botões corporativos */
+        .greenB { background-position: 0 -425px; border: 1px solid #7ca82a; }
+        .redB { background-position: 0 -170px; border: 1px solid #9f352b; }
+        .greyB { background-position: 0 0; border: 1px solid #999; color: #555; }
+        .dblueB { background-position: 0 -680px; border: 1px solid #2e6691; color: #fff; }
+
+        /* Loader/Spinner embutido para simulação */
+        .spinner {
+            display: none;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-left: 6px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== 8. BARRA DE SIMULAÇÃO INFERIOR ===== */
+        .toolbar-simulation {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 1px solid #cdcdcd;
+            padding: 8px 15px;
+            border-radius: 4px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10000;
+        }
+
+        .toolbar-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: #999;
+            text-transform: uppercase;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="popup-backdrop">
+    <div class="ui-dialog">
+        <div class="ui-dialog-titlebar">
+            <span class="ui-dialog-title" id="modal-title">Destinação Bloqueada por Relacionamentos Ativos</span>
+            <a href="javascript:void(0)" onclick="executarAcao('cancelar')" class="close-x">✖</a>
+        </div>
+
+        <div class="ui-dialog-content">
+            
+            <div id="msg-erro-bloqueio" class="validation-message error">
+        
+                <div>
+                    <strong>Atenção:</strong> Foram identificados documentos com relacionamentos ativos que não estão incluídos nesta solicitação de destinação. Para prosseguir, inclua todos os documentos relacionados na mesma solicitação ou remova os relacionamentos existentes (caso possua permissão).
+                </div>
+            </div>
+
+            <div id="msg-sucesso-validacao" class="validation-message success">
+        
+                <div>
+                    <strong>Sucesso:</strong> 3 documentos relacionados foram adicionados automaticamente ao carrinho de solicitação. A validação de integridade foi reexecutada e nenhuma pendência foi encontrada.
+                </div>
+            </div>
+
+            <div class="summary-container">
+                <div class="summary-item">Tipo de Destinação: <strong id="val-tipo">Eliminação</strong></div>
+                <div class="summary-item">Documentos Selecionados no Carrinho: <strong id="val-selecionados">5</strong></div>
+                <div class="summary-item">Relacionamentos Encontrados: <strong id="val-relacionamentos">3</strong></div>
+                <div class="summary-item">Documentos Relacionados Pendentes: <strong id="val-pendentes" style="color: #9f352b; font-weight: bold;">3</strong></div>
+            </div>
+
+            <div class="grid-container">
+                <table class="grid-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 28%;">Documento Selecionado</th>
+                            <th style="width: 28%;">Documento Relacionado</th>
+                            <th style="width: 22%;">Tipo de Relacionamento</th>
+                            <th style="width: 22%;">Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grid-corpo">
+                        <tr>
+                            <td><strong>DC0014B20008677SOS</strong></td>
+                            <td>DC0030490009114SOS</td>
+                            <td>Anexo</td>
+                            <td><span class="status-badge" id="sit-1">Não incluído na solicitação</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>DC0014B20008677SOS</strong></td>
+                            <td>DC00304V0006917SOS</td>
+                            <td>Volume</td>
+                            <td><span class="status-badge" id="sit-2">Não incluído na solicitação</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>DC00145G2005297SOS</strong></td>
+                            <td>DC00146G2005298SOS</td>
+                            <td>Documento Complementar</td>
+                            <td><span class="status-badge" id="sit-3">Não incluído na solicitação</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-notes" id="painel-regras">
+                <p>A solicitação somente poderá ser concluída quando:</p>
+                <ul>
+                    <li>Todos os documentos relacionados estiverem incluídos na mesma solicitação;</li>
+                    <li>Ou os relacionamentos forem removidos por usuário autorizado.</li>
+                </ul>
+            </div>
+
+            <div class="button-wrapper">
+                <button class="btn-docz dblueB" onclick="executarAcao('gerenciar')">Gerenciar Relacionamentos</button>
+                <div class="btn-group-right">
+                    <button class="btn-docz greenB" id="btn-incluir" onclick="executarAcao('incluir')">
+                        <span id="btn-text">Incluir 3 Documentos Relacionados</span>
+                        <span class="spinner" id="btn-spinner"></span>
+                    </button>
+                    <button class="btn-docz redB" id="btn-cancelar" onclick="executarAcao('cancelar')">Cancelar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="toolbar-simulation">
+    <span class="toolbar-title">Simulação SIGAD 1776:</span>
+    <button class="btn-docz greyB" style="padding: 2px 10px; height: 22px;" onclick="trocarDestinacao('Eliminação')">Cenário: Eliminação</button>
+    <button class="btn-docz greyB" style="padding: 2px 10px; height: 22px;" onclick="trocarDestinacao('Guarda Permanente')">Cenário: Guarda Perm.</button>
+    <button class="btn-docz greyB" style="padding: 2px 10px; height: 22px;" onclick="resetarRelações()">Resetar Interface</button>
+</div>
+
+<script>
+    // Configurações e estados iniciais da simulação
+    let pendenciasAtivas = 3;
+
+    function executarAcao(acao) {
+        if (acao === 'cancelar') {
+            console.log("Sistema Auditoria - Ação: \"Cancelou a Operação\"");
+            alert("Operação cancelada pelo usuário. Retornando ao carrinho.");
+            document.getElementById("popup-backdrop").style.display = "none";
+        } 
+        
+        else if (acao === 'gerenciar') {
+            console.log("Sistema Auditoria - Ação: \"Visualizou Relacionamentos\"");
+            alert("Redirecionando para a tela de gestão técnica de relacionamentos do documento selecionado...");
+        } 
+        
+        else if (acao === 'incluir') {
+            console.log("Sistema Auditoria - Ação: \"Incluiu Documentos Relacionados\"");
+            
+            // Ativa loaders clássicos
+            const btn = document.getElementById("btn-incluir");
+            const spinner = document.getElementById("btn-spinner");
+            const text = document.getElementById("btn-text");
+            
+            btn.disabled = true;
+            spinner.style.display = "inline-block";
+            text.innerText = "Processando Inclusão...";
+
+            // Simulação do tempo de processamento assíncrono do servidor legado
+            setTimeout(() => {
+                // Atualização dos estados de validação
+                pendenciasAtivas = 0;
+                
+                // Oculta caixa de erro e regras de restrição
+                document.getElementById("msg-erro-bloqueio").style.display = "none";
+                document.getElementById("painel-regras").style.display = "none";
+                
+                // Exibe caixa de sucesso de validação
+                document.getElementById("msg-sucesso-validacao").style.display = "flex";
+                
+                // Atualiza contadores do carrinho
+                document.getElementById("val-selecionados").innerText = "8"; // 5 originais + 3 incluídos
+                document.getElementById("val-pendentes").innerText = "0";
+                document.getElementById("val-pendentes").style.color = "#2e7d32";
+                
+                // Atualiza as linhas da grid corporativa
+                for (let i = 1; i <= 3; i++) {
+                    const statusCell = document.getElementById("sit-" + i);
+                    if (statusCell) {
+                        statusCell.className = "status-badge included";
+                        statusCell.innerText = "Incluído na solicitação";
+                    }
+                }
+                
+                // Altera o comportamento do botão principal para finalização normal
+                spinner.style.display = "none";
+                btn.disabled = false;
+                text.innerText = "Concluir Solicitação";
+                btn.onclick = function() {
+                    console.log("Sistema Auditoria - Ação: \"Concluiu Solicitação de Destinação\"");
+                    alert("Solicitação de destinação concluída com sucesso e enviada para a fila de homologação!");
+                    document.getElementById("popup-backdrop").style.display = "none";
+                };
+                
+            }, 1200);
+        }
+    }
+
+    // Funções auxiliares da barra de simulação inferior
+    function trocarDestinacao(tipo) {
+        document.getElementById("val-tipo").innerText = tipo;
+        console.log("Simulador DocZ: Alterado tipo de destinação para " + tipo);
+    }
+
+    function resetarRelações() {
+        pendenciasAtivas = 3;
+        document.getElementById("popup-backdrop").style.display = "flex";
+        document.getElementById("msg-erro-bloqueio").style.display = "flex";
+        document.getElementById("painel-regras").style.display = "block";
+        document.getElementById("msg-sucesso-validacao").style.display = "none";
+        
+        document.getElementById("val-selecionados").innerText = "5";
+        document.getElementById("val-pendentes").innerText = "3";
+        document.getElementById("val-pendentes").style.color = "#9f352b";
+        
+        for (let i = 1; i <= 3; i++) {
+            const statusCell = document.getElementById("sit-" + i);
+            if (statusCell) {
+                statusCell.className = "status-badge";
+                statusCell.innerText = "Não incluído na solicitação";
+            }
+        }
+        
+        const btn = document.getElementById("btn-incluir");
+        const text = document.getElementById("btn-text");
+        text.innerText = "Incluir 3 Documentos Relacionados";
+        btn.onclick = function() { executarAcao('incluir'); };
+        
+        console.log("Simulador DocZ: Interface reiniciada para o estado inicial de bloqueio.");
+    }
+</script>
+
+</body>
+</html>
