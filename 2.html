@@ -40,7 +40,6 @@
             box-sizing: border-box;
         }
 
-        /* Titlebar Legada DocZ */
         .ui-dialog-titlebar {
             background: url("https://docz.sosdocs.com.br/Docz/app/images/backgrounds/titleBg.png") repeat-x 0 0;
             border-bottom: 1px solid #cdcdcd;
@@ -72,7 +71,6 @@
             color: #000;
         }
 
-        /* Corpo Interno */
         .ui-dialog-content {
             background-color: #fafafa;
             padding: 20px;
@@ -106,7 +104,7 @@
             background: #e8f5e9;
             border: 1px solid #4caf50;
             color: #2e7d32;
-            display: none; /* Controlado via JS */
+            display: none;
         }
 
         .alert-icon {
@@ -180,7 +178,6 @@
             background-color: #f1f5f9;
         }
 
-        /* Status na Tabela */
         .status-badge {
             font-weight: bold;
             color: #9f352b;
@@ -261,13 +258,11 @@
             filter: grayscale(100%);
         }
 
-        /* Sprite Positions dos botões corporativos */
         .greenB { background-position: 0 -425px; border: 1px solid #7ca82a; }
         .redB { background-position: 0 -170px; border: 1px solid #9f352b; }
         .greyB { background-position: 0 0; border: 1px solid #999; color: #555; }
         .dblueB { background-position: 0 -680px; border: 1px solid #2e6691; color: #fff; }
 
-        /* Loader/Spinner embutido para simulação */
         .spinner {
             display: none;
             width: 12px;
@@ -283,7 +278,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ===== 8. BARRA DE SIMULAÇÃO INFERIOR ===== */
         .toolbar-simulation {
             position: fixed;
             bottom: 15px;
@@ -307,6 +301,23 @@
             text-transform: uppercase;
             margin-right: 5px;
         }
+
+        .checkbox-col {
+            width: 18px;
+            text-align: center;
+            padding: 8px 3px;
+        }
+
+        .doc-checkbox {
+            cursor: pointer;
+            margin: 0;
+            transform: scale(0.9);
+        }
+
+        th.checkbox-col {
+            width: 18px;
+            padding: 8px 3px;
+        }
     </style>
 </head>
 <body>
@@ -321,16 +332,14 @@
         <div class="ui-dialog-content">
             
             <div id="msg-erro-bloqueio" class="validation-message error">
-        
                 <div>
                     <strong>Atenção:</strong> Foram identificados documentos com relacionamentos ativos que não estão incluídos nesta solicitação de destinação. Para prosseguir, inclua todos os documentos relacionados na mesma solicitação ou remova os relacionamentos existentes (caso possua permissão).
                 </div>
             </div>
 
             <div id="msg-sucesso-validacao" class="validation-message success">
-        
                 <div>
-                    <strong>Sucesso:</strong> 3 documentos relacionados foram adicionados automaticamente ao carrinho de solicitação. A validação de integridade foi reexecutada e nenhuma pendência foi encontrada.
+                    <strong>Sucesso:</strong> Os documentos relacionados selecionados foram adicionados ao carrinho de solicitação.
                 </div>
             </div>
 
@@ -345,29 +354,29 @@
                 <table class="grid-table">
                     <thead>
                         <tr>
-                            <th style="width: 28%;">Documento Selecionado</th>
-                            <th style="width: 28%;">Documento Relacionado</th>
-                            <th style="width: 22%;">Tipo de Relacionamento</th>
-                            <th style="width: 22%;">Situação</th>
+                            <th class="checkbox-col"></th>
+                            <th style="width: 29%;">Documento Selecionado</th>
+                            <th style="width: 29%;">Documento Relacionado</th>
+                            <th style="width: 24%;">Situação</th>
                         </tr>
                     </thead>
                     <tbody id="grid-corpo">
                         <tr>
+                            <td class="checkbox-col"><input type="checkbox" class="doc-checkbox" data-idx="1"></td>
                             <td><strong>DC0014B20008677SOS</strong></td>
                             <td>DC0030490009114SOS</td>
-                            <td>Anexo</td>
                             <td><span class="status-badge" id="sit-1">Não incluído na solicitação</span></td>
                         </tr>
                         <tr>
+                            <td class="checkbox-col"><input type="checkbox" class="doc-checkbox" data-idx="2"></td>
                             <td><strong>DC0014B20008677SOS</strong></td>
                             <td>DC00304V0006917SOS</td>
-                            <td>Volume</td>
                             <td><span class="status-badge" id="sit-2">Não incluído na solicitação</span></td>
                         </tr>
                         <tr>
+                            <td class="checkbox-col"><input type="checkbox" class="doc-checkbox" data-idx="3"></td>
                             <td><strong>DC00145G2005297SOS</strong></td>
                             <td>DC00146G2005298SOS</td>
-                            <td>Documento Complementar</td>
                             <td><span class="status-badge" id="sit-3">Não incluído na solicitação</span></td>
                         </tr>
                     </tbody>
@@ -386,7 +395,7 @@
                 <button class="btn-docz dblueB" onclick="executarAcao('gerenciar')">Gerenciar Relacionamentos</button>
                 <div class="btn-group-right">
                     <button class="btn-docz greenB" id="btn-incluir" onclick="executarAcao('incluir')">
-                        <span id="btn-text">Incluir 3 Documentos Relacionados</span>
+                        <span id="btn-text">Incluir Documentos Selecionados</span>
                         <span class="spinner" id="btn-spinner"></span>
                     </button>
                     <button class="btn-docz redB" id="btn-cancelar" onclick="executarAcao('cancelar')">Cancelar</button>
@@ -405,8 +414,18 @@
 </div>
 
 <script>
-    // Configurações e estados iniciais da simulação
     let pendenciasAtivas = 3;
+
+    function atualizarContadorSelecionados() {
+        const checkboxes = document.querySelectorAll('.doc-checkbox:not(:disabled)');
+        const selecionados = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const btnText = document.getElementById("btn-text");
+        if (selecionados === 0) {
+            btnText.innerText = "Nenhum Documento Selecionado";
+        } else {
+            btnText.innerText = "Incluir " + selecionados + " Documento" + (selecionados > 1 ? "s" : "") + " Selecionado" + (selecionados > 1 ? "s" : "");
+        }
+    }
 
     function executarAcao(acao) {
         if (acao === 'cancelar') {
@@ -421,9 +440,16 @@
         } 
         
         else if (acao === 'incluir') {
-            console.log("Sistema Auditoria - Ação: \"Incluiu Documentos Relacionados\"");
+            const checkboxes = document.querySelectorAll('.doc-checkbox:not(:disabled)');
+            const selecionados = Array.from(checkboxes).filter(cb => cb.checked);
             
-            // Ativa loaders clássicos
+            if (selecionados.length === 0) {
+                alert("Selecione pelo menos um documento relacionado para incluir na solicitação.");
+                return;
+            }
+            
+            console.log("Sistema Auditoria - Ação: \"Incluiu Documentos Relacionados\" - Selecionados: " + selecionados.length);
+            
             const btn = document.getElementById("btn-incluir");
             const spinner = document.getElementById("btn-spinner");
             const text = document.getElementById("btn-text");
@@ -432,47 +458,72 @@
             spinner.style.display = "inline-block";
             text.innerText = "Processando Inclusão...";
 
-            // Simulação do tempo de processamento assíncrono do servidor legado
             setTimeout(() => {
-                // Atualização dos estados de validação
-                pendenciasAtivas = 0;
+                const indicesSelecionados = selecionados.map(cb => parseInt(cb.getAttribute('data-idx')));
                 
-                // Oculta caixa de erro e regras de restrição
-                document.getElementById("msg-erro-bloqueio").style.display = "none";
-                document.getElementById("painel-regras").style.display = "none";
-                
-                // Exibe caixa de sucesso de validação
-                document.getElementById("msg-sucesso-validacao").style.display = "flex";
-                
-                // Atualiza contadores do carrinho
-                document.getElementById("val-selecionados").innerText = "8"; // 5 originais + 3 incluídos
-                document.getElementById("val-pendentes").innerText = "0";
-                document.getElementById("val-pendentes").style.color = "#2e7d32";
-                
-                // Atualiza as linhas da grid corporativa
-                for (let i = 1; i <= 3; i++) {
-                    const statusCell = document.getElementById("sit-" + i);
-                    if (statusCell) {
+                indicesSelecionados.forEach(idx => {
+                    const statusCell = document.getElementById("sit-" + idx);
+                    if (statusCell && statusCell.innerText !== "Incluído na solicitação") {
                         statusCell.className = "status-badge included";
                         statusCell.innerText = "Incluído na solicitação";
+                        pendenciasAtivas--;
+                    }
+                    const checkbox = document.querySelector(`.doc-checkbox[data-idx="${idx}"]`);
+                    if (checkbox) {
+                        checkbox.disabled = true;
+                        checkbox.checked = false;
+                    }
+                });
+                
+                const carrinhoAtual = parseInt(document.getElementById("val-selecionados").innerText);
+                const novosSelecionados = indicesSelecionados.length;
+                document.getElementById("val-selecionados").innerText = carrinhoAtual + novosSelecionados;
+                
+                const pendenciasRestantes = Math.max(0, pendenciasAtivas);
+                document.getElementById("val-pendentes").innerText = pendenciasRestantes;
+                
+                if (pendenciasRestantes === 0) {
+                    document.getElementById("val-pendentes").style.color = "#2e7d32";
+                    
+                    btn.disabled = false;
+                    spinner.style.display = "none";
+                    text.innerText = "Concluir Solicitação";
+                    btn.onclick = function() {
+                        console.log("Sistema Auditoria - Ação: \"Concluiu Solicitação de Destinação\"");
+                        alert("Solicitação de destinação concluída com sucesso e enviada para a fila de homologação!");
+                        document.getElementById("popup-backdrop").style.display = "none";
+                    };
+                } else {
+                    document.getElementById("val-pendentes").style.color = "#9f352b";
+                    
+                    spinner.style.display = "none";
+                    btn.disabled = false;
+                    atualizarContadorSelecionados();
+                    
+                    document.querySelectorAll('.doc-checkbox').forEach(cb => {
+                        if (!cb.disabled) {
+                            const idx = parseInt(cb.getAttribute('data-idx'));
+                            const statusCell = document.getElementById("sit-" + idx);
+                            if (statusCell && statusCell.innerText === "Incluído na solicitação") {
+                                cb.disabled = true;
+                            }
+                        }
+                    });
+                    
+                    if (pendenciasRestantes > 0) {
+                        alert("Foram incluídos " + novosSelecionados + " documento(s). Ainda restam " + pendenciasRestantes + " pendente(s) para prosseguir.");
                     }
                 }
                 
-                // Altera o comportamento do botão principal para finalização normal
-                spinner.style.display = "none";
-                btn.disabled = false;
-                text.innerText = "Concluir Solicitação";
-                btn.onclick = function() {
-                    console.log("Sistema Auditoria - Ação: \"Concluiu Solicitação de Destinação\"");
-                    alert("Solicitação de destinação concluída com sucesso e enviada para a fila de homologação!");
-                    document.getElementById("popup-backdrop").style.display = "none";
-                };
-                
-            }, 1200);
+                const checkboxesRestantes = document.querySelectorAll('.doc-checkbox:not(:disabled)');
+                if (checkboxesRestantes.length === 0 && pendenciasRestantes > 0) {
+                    btn.disabled = false;
+                    spinner.style.display = "none";
+                }
+            }, 800);
         }
     }
 
-    // Funções auxiliares da barra de simulação inferior
     function trocarDestinacao(tipo) {
         document.getElementById("val-tipo").innerText = tipo;
         console.log("Simulador DocZ: Alterado tipo de destinação para " + tipo);
@@ -482,8 +533,8 @@
         pendenciasAtivas = 3;
         document.getElementById("popup-backdrop").style.display = "flex";
         document.getElementById("msg-erro-bloqueio").style.display = "flex";
-        document.getElementById("painel-regras").style.display = "block";
         document.getElementById("msg-sucesso-validacao").style.display = "none";
+        document.getElementById("painel-regras").style.display = "block";
         
         document.getElementById("val-selecionados").innerText = "5";
         document.getElementById("val-pendentes").innerText = "3";
@@ -495,15 +546,27 @@
                 statusCell.className = "status-badge";
                 statusCell.innerText = "Não incluído na solicitação";
             }
+            const checkbox = document.querySelector(`.doc-checkbox[data-idx="${i}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                checkbox.disabled = false;
+            }
         }
         
         const btn = document.getElementById("btn-incluir");
         const text = document.getElementById("btn-text");
-        text.innerText = "Incluir 3 Documentos Relacionados";
+        btn.disabled = false;
+        atualizarContadorSelecionados();
         btn.onclick = function() { executarAcao('incluir'); };
         
         console.log("Simulador DocZ: Interface reiniciada para o estado inicial de bloqueio.");
     }
+
+    document.querySelectorAll('.doc-checkbox').forEach(cb => {
+        cb.addEventListener('change', atualizarContadorSelecionados);
+    });
+    
+    atualizarContadorSelecionados();
 </script>
 
 </body>
